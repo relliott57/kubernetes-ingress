@@ -2239,7 +2239,13 @@ func (vsc *virtualServerConfigurator) generateSSLConfig(owner runtime.Object, tl
 		return nil
 	}
 
-	secretRef := secretRefs[fmt.Sprintf("%s/%s", namespace, tls.Secret)]
+	var secretRef *secrets.SecretReference
+	if !strings.Contains(tls.Secret, "/") {
+		secretRef = secretRefs[fmt.Sprintf("%s/%s", namespace, tls.Secret)]
+	} else {
+		secretRef = secretRefs[tls.Secret]
+	}
+
 	var secretType api_v1.SecretType
 	if secretRef.Secret != nil {
 		secretType = secretRef.Secret.Type

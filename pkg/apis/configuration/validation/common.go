@@ -201,7 +201,7 @@ func validateSecretName(name string, fieldPath *field.Path) field.ErrorList {
 		return allErrs
 	}
 
-	for _, msg := range validation.IsDNS1123Subdomain(name) {
+	for _, msg := range validation.IsQualifiedName(name) {
 		allErrs = append(allErrs, field.Invalid(fieldPath, name, msg))
 	}
 

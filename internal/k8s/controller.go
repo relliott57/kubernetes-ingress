@@ -2927,7 +2927,14 @@ func (lbc *LoadBalancerController) createVirtualServerEx(virtualServer *conf_v1.
 	}
 
 	if virtualServer.Spec.TLS != nil && virtualServer.Spec.TLS.Secret != "" {
-		secretKey := virtualServer.Namespace + "/" + virtualServer.Spec.TLS.Secret
+
+		var secretKey string
+
+		if !strings.Contains(virtualServer.Spec.TLS.Secret, "/") {
+			secretKey = virtualServer.Namespace + "/" + virtualServer.Spec.TLS.Secret
+		} else {
+			secretKey = virtualServer.Spec.TLS.Secret
+		}
 
 		secretRef := lbc.secretStore.GetSecret(secretKey)
 		if secretRef.Error != nil {

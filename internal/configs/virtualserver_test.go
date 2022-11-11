@@ -5565,6 +5565,29 @@ func TestGenerateSSLConfig(t *testing.T) {
 			expectedWarnings: Warnings{},
 			msg:              "normal case with HTTPS",
 		},
+		{
+			inputTLS: &conf_v1.TLS{
+				Secret: "other-ns/secret",
+			},
+			inputSecretRefs: map[string]*secrets.SecretReference{
+				"other-ns/secret": {
+					Secret: &api_v1.Secret{
+						Type: api_v1.SecretTypeTLS,
+					},
+					Path: "secret.pem",
+				},
+			},
+			inputCfgParams: &ConfigParams{},
+			wildcard:       false,
+			expectedSSL: &version2.SSL{
+				HTTP2:           false,
+				Certificate:     "secret.pem",
+				CertificateKey:  "secret.pem",
+				RejectHandshake: false,
+			},
+			expectedWarnings: Warnings{},
+			msg:              "secret exists in a different namespace",
+		},
 	}
 
 	namespace := "default"
