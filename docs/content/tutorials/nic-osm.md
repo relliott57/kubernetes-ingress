@@ -9,10 +9,177 @@ Below is a link to the official F5 NGINX Ingress controller documentation.
 
 There are two ways to integrate the NGINX Ingress Controller with Open Service Mesh (OSM):
 
-1. Using the Open Service Mesh `ingressBackend` "proxy" feature.
-2. Injecting an envoy sidecar directly with NGINX Ingress Controller.
+1. Injecting an envoy sidecar directly with NGINX Ingress Controller.
+2. Using the Open Service Mesh `ingressBackend` "proxy" feature.
 
-## Using The Open Service Mesh `ingressBackend` "proxy" Feature
+# First, install NGINX Ingress Controller into your cluster. 
+
+
+When using NGINX Ingress controller with thes sidecar method, you will want to ensure you are providing the correct annotation to your deployment.    
+
+[Using Helm to install NGINX Ingress](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-helm/)    
+[Using manifests to install NGINX Ingress](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-manifests/)    
+
+
+If you are using `helm`, make sure you pass in the correct `annotation` in this example:
+
+```yaml
+  annotations: {                                                                                                                                                                                                                                                         openservicemesh.io/inbound-port-exclusion-list: "80, 443"                                                                                                                                                                                                    }
+```
+
+If you are using `manifests`, add the following line to the the deploment file:
+
+```yaml
+annotations:
+  openservicemesh.io/inbound-port-exclusion-list: "80,443"
+```
+
+
+# NGINX Ingress controller and OSM with sidecar injected
+
+First install OSM in the cluster
+
+```bash
+osm install --mesh-name osm-nginx --osm-namespace osm-system
+```
+
+### Mark NGINX Ingress controller namespace for sidecar injection
+
+*NOTE:* Depending on how you install NGINX Ingress controller, you might need to create the `namespae`. For example, if you are using manifests to install NGINX Ingress controller, you can complete all of the steps on our documentation page, *EXCEPT*, actually deploying NGINX Ingress controller. This is because, when using the sidecar approach, OSM needs to "manage" the namespace so it knows what `namespaces` it needs to inject sidecars into.
+
+Next thing we need to do is install OSM into the `NGINX Ingress controller` namespace so that the `envoy` sidecar will be injected into NGINX Ingress controller.
+First, create the `nginx-ingress` namespace:
+
+```bash
+kubectl get ns nginx-ingress
+```
+Then "mark" the `nginx-ingress` namespace for OSM to deploy a sidecar.
+
+```bash
+osm namespace add nginx-ingress --mesh-name osm-nginx
+```
+
+The above command will use the mark the `nginx-ingress` namespace, where OSM will be installed (sidecar)
+
+### Install a Test Application
+To test the integration, we will use the `httpbin` sample application from the [Ingress With Kubernetes NGINX Ingress Controller](https://release-v1-2.docs.openservicemesh.io/docs/demos/ingress_k8s_nginx/) guide.
+
+The following three commands will create the namespace for the application, add the namespace to OSM for monitoring, then install the application.
+
+```bash
+kubectl create ns httpbin
+osm namespace add httpbin --mesh-name osm-nginx
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm-docs/release-v1.2/manifests/samples/httpbin/httpbin.yaml -n httpbin
+```
+
+### Add required annotations to NGINX Ingress Controller deployment:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-ingress
+  namespace: nginx-ingress
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-ingress
+  template:
+    metadata:
+      labels:
+        app: nginx-ingress
+      annotations:
+        openservicemesh.io/inbound-port-exclusion-list: "80,443"
+```
+
+This annotation is *required* when injecting envoy sidecar into NGINX Ingress controller.
+
+`InboundPortExclusionList` defines a global list of ports to exclude from inbound traffic interception by the sidecar proxy.
+
+
+### Verify that the envoy sidecar has been *injected* into NGINX Ingress
+
+```bash
+kubectl get pods -n nginx-ingress
+NAME                             READY   STATUS    RESTARTS       AGE
+nginx-ingress-7b9557ddc6-zw7l5   2/2     Running   1 (5m8s ago)   5m19s
+```
+
+2/2 shows we have two containers in the NGINX Ingress controller pod: NGINX Ingress and Envoy
+
+
+Configure your NGINX VirtualServer yaml definitions to similar configuration below.
+
+```yaml
+apiVersion: k8s.nginx.org/v1
+kind: VirtualServer
+metadata:
+  name: httpbin
+  namespace: httpbin
+spec:
+  host: httpbin.example.com
+  tls:
+    secret: secret01
+  upstreams:
+  - name: httpbin
+    service: httpbin
+    port: 14001
+    use-cluster-ip: true
+  routes:
+  - path: /
+    action:
+      proxy:
+        upstream: httpbin
+        requestHeaders:
+          set:
+          - name: Host
+            value: httpbin.httpbin.svc.cluster.local
+```
+
+Test your configuration:
+
+```bash
+ curl  http://httpbin.example.com/get -v
+*   Trying 172.19.0.2:80...
+* TCP_NODELAY set
+* Connected to httpbin.example.com (172.19.0.2) port 80 (#0)
+> GET /get HTTP/1.1
+> Host: httpbin.example.com
+> User-Agent: curl/7.68.0
+> Accept: */*
+>
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< Server: nginx/1.23.3
+< Date: Sun, 19 Feb 2023 19:06:47 GMT
+< Content-Type: application/json
+< Content-Length: 454
+< Connection: keep-alive
+< access-control-allow-origin: *
+< access-control-allow-credentials: true
+< x-envoy-upstream-service-time: 2
+<
+{
+  "args": {},
+  "headers": {
+    "Accept": "*/*",
+    "Host": "httpbin.httpbin.svc.cluster.local",
+    "Osm-Stats-Kind": "Deployment",
+    "Osm-Stats-Name": "httpbin",
+    "Osm-Stats-Namespace": "httpbin",
+    "Osm-Stats-Pod": "httpbin-78555f5c4b-t6qln",
+    "User-Agent": "curl/7.68.0",
+    "X-Envoy-Internal": "true",
+    "X-Forwarded-Host": "httpbin.example.com"
+  },
+  "origin": "172.19.0.1",
+  "url": "http://httpbin.example.com/get"
+}
+* Connection #0 to host httpbin.example.com left intact
+```
+
+## Using The Open Service Mesh `IngressBackend` "proxy" Feature
 
 Install OSM into cluster.
 By running the following command, you will install OSM into the cluster with the mesh name `osm-nginx` using the `osm-system` namespace.
@@ -257,146 +424,3 @@ curl http://httpbin.example.com/get -v
 * Connection #0 to host httpbin.example.com left intact
 ```
 
-# NGINX Ingress controller and OSM with sidecar injected
-
-First install OSM in the cluster
-
-```bash
-osm install --mesh-name osm-nginx --osm-namespace osm-system
-```
-
-### Mark NGINX Ingress controller namespace for sidecar injection
-
-*NOTE:* Depending on how you install NGINX Ingress controller, you might need to create the `namespae`. For example, if you are using manifests to install NGINX Ingress controller, you can complete all of the steps on our documentation page, *EXCEPT*, actually deploying NGINX Ingress controller. This is because, when using the sidecar approach, OSM needs to "manage" the namespace so it knows what `namespaces` it needs to inject sidecars into.
-
-Next thing we need to do is install OSM into the `NGINX Ingress controller` namespace so that the `envoy` sidecar will be injected into NGINX Ingress controller.
-First, create the `nginx-ingress` namespace:
-
-```bash
-kubectl get ns nginx-ingress
-```
-Then "mark" the `nginx-ingress` namespace for OSM to deploy a sidecar.
-
-```bash
-osm namespace add nginx-ingress --mesh-name osm-nginx
-```
-
-The above command will use the mark the `nginx-ingress` namespace, where OSM will be installed (sidecar)
-
-### Install a Test Application
-To test the integration, we will use the `httpbin` sample application from the [Ingress With Kubernetes NGINX Ingress Controller](https://release-v1-2.docs.openservicemesh.io/docs/demos/ingress_k8s_nginx/) guide.
-
-The following three commands will create the namespace for the application, add the namespace to OSM for monitoring, then install the application.
-
-```bash
-kubectl create ns httpbin
-osm namespace add httpbin --mesh-name osm-nginx
-kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm-docs/release-v1.2/manifests/samples/httpbin/httpbin.yaml -n httpbin
-```
-
-### Add required annotations to NGINX Ingress Controller deployment:
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-ingress
-  namespace: nginx-ingress
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: nginx-ingress
-  template:
-    metadata:
-      labels:
-        app: nginx-ingress
-      annotations:
-        openservicemesh.io/inbound-port-exclusion-list: "80,443"
-```
-
-This annotation is *required* when injecting envoy sidecar into NGINX Ingress controller.
-
-`InboundPortExclusionList` defines a global list of ports to exclude from inbound traffic interception by the sidecar proxy.
-
-
-### Verify that the envoy sidecar has been *injected* into NGINX Ingress
-
-```bash
-kubectl get pods -n nginx-ingress
-NAME                             READY   STATUS    RESTARTS       AGE
-nginx-ingress-7b9557ddc6-zw7l5   2/2     Running   1 (5m8s ago)   5m19s
-```
-
-2/2 shows we have two containers in the NGINX Ingress controller pod: NGINX Ingress and Envoy
-
-
-Configure your NGINX VirtualServer yaml definitions to similar configuration below.
-
-```yaml
-apiVersion: k8s.nginx.org/v1
-kind: VirtualServer
-metadata:
-  name: httpbin
-  namespace: httpbin
-spec:
-  host: httpbin.example.com
-  tls:
-    secret: secret01
-  upstreams:
-  - name: httpbin
-    service: httpbin
-    port: 14001
-    use-cluster-ip: true
-  routes:
-  - path: /
-    action:
-      proxy:
-        upstream: httpbin
-        requestHeaders:
-          set:
-          - name: Host
-            value: httpbin.httpbin.svc.cluster.local
-```
-
-Test your configuration:
-
-```bash
- curl  http://httpbin.example.com/get -v
-*   Trying 172.19.0.2:80...
-* TCP_NODELAY set
-* Connected to httpbin.example.com (172.19.0.2) port 80 (#0)
-> GET /get HTTP/1.1
-> Host: httpbin.example.com
-> User-Agent: curl/7.68.0
-> Accept: */*
->
-* Mark bundle as not supporting multiuse
-< HTTP/1.1 200 OK
-< Server: nginx/1.23.3
-< Date: Sun, 19 Feb 2023 19:06:47 GMT
-< Content-Type: application/json
-< Content-Length: 454
-< Connection: keep-alive
-< access-control-allow-origin: *
-< access-control-allow-credentials: true
-< x-envoy-upstream-service-time: 2
-<
-{
-  "args": {},
-  "headers": {
-    "Accept": "*/*",
-    "Host": "httpbin.httpbin.svc.cluster.local",
-    "Osm-Stats-Kind": "Deployment",
-    "Osm-Stats-Name": "httpbin",
-    "Osm-Stats-Namespace": "httpbin",
-    "Osm-Stats-Pod": "httpbin-78555f5c4b-t6qln",
-    "User-Agent": "curl/7.68.0",
-    "X-Envoy-Internal": "true",
-    "X-Forwarded-Host": "httpbin.example.com"
-  },
-  "origin": "172.19.0.1",
-  "url": "http://httpbin.example.com/get"
-}
-* Connection #0 to host httpbin.example.com left intact
-```
