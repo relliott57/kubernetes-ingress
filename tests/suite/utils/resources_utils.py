@@ -538,6 +538,24 @@ def is_secret_present(v1: CoreV1Api, name, namespace) -> bool:
     return True
 
 
+def is_namespace_present(v1: CoreV1Api, namespace) -> bool:
+    """
+    Check if a namespace exists.
+
+    :param v1: CoreV1Api
+    :param name:
+    :param namespace:
+    :return: bool
+    """
+    try:
+        v1.read_namespace(namespace)
+    except ApiException as ex:
+        if ex.status == 404:
+            print(f"No namepace '{namespace}' found.")
+            return False
+    return True
+
+
 def delete_secret(v1: CoreV1Api, name, namespace) -> None:
     """
     Delete a secret.
