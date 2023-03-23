@@ -47,3 +47,4 @@ find $DOCS_TO_UPDATE_FOLDER/app-protect-* -type f -name "*.md" -exec sed -i "" "
 
 # update IC version in the technical-specification doc
 sed -i "" "s/$prev_ic_version/$ic_version/g" $DOCS_TO_UPDATE_FOLDER/technical-specifications.md
+sed -i "" "s/$prev_helm_chart_version/$helm_chart_version/g" $DOCS_TO_UPDATE_FOLDER/technical-specifications.md
