@@ -12,13 +12,13 @@ There are two ways to integrate the NGINX Ingress Controller with Open Service M
 1. Injecting an envoy sidecar directly with NGINX Ingress Controller.
 2. Using the Open Service Mesh `ingressBackend` "proxy" feature.
 
-# First, install NGINX Ingress Controller into your cluster. 
+# First, install NGINX Ingress Controller into your cluster.
 
 
-When using NGINX Ingress controller with thes sidecar method, you will want to ensure you are providing the correct annotation to your deployment.    
+When using NGINX Ingress controller with thes sidecar method, you will want to ensure you are providing the correct annotation to your deployment.
 
-[Using Helm to install NGINX Ingress](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-helm/)    
-[Using manifests to install NGINX Ingress](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-manifests/)    
+[Using Helm to install NGINX Ingress](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-helm/)
+[Using manifests to install NGINX Ingress](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-manifests/)
 
 
 If you are using `helm`, make sure you pass in the correct `annotation` in this example:
