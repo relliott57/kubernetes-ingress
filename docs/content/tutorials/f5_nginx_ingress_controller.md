@@ -2,7 +2,7 @@
 
 Open Service Mesh will work with both versions of [F5 NGINX Ingress controller](https://github.com/nginxinc/kubernetes-ingress): the free as well as the NGINX Plus versions.
 
-Below is a link to the official F5 NGINX Ingress controller documentation.    
+Below is a link to the official F5 NGINX Ingress controller documentation.
 [F5 NGINX Ingress controller](https://docs.nginx.com/nginx-ingress-controller/)
 
 # Integrating NGINX Ingress Controller with Open Service Mesh
@@ -13,7 +13,7 @@ There are two ways to integrate the NGINX Ingress Controller with Open Service M
 2. Using the Open Service Mesh `ingressBackend` "proxy" feature.
 
 
-# NGINX Ingress controller and OSM with sidecar injected 
+# NGINX Ingress controller and OSM with sidecar injected
 
 Install OSM in the cluster
 
@@ -41,8 +41,8 @@ The above command will use the mark the `nginx-ingress` namespace, where OSM wil
 
 # Istall F5 NGINX Ingress controller. Here the links to the install guides:
 
-[Using Helm to install NGINX Ingress](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-helm/)   
-[Using Manifests to install NGINX Ingress](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-manifests/)   
+[Using Helm to install NGINX Ingress](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-helm/)
+[Using Manifests to install NGINX Ingress](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-manifests/)
 
 
 When using the sidecar method, ensure that you add the correct annotations listed below. This ensures proper integration of NGINX Ingress Controller with the envoy sidecar proxy.
@@ -50,8 +50,8 @@ When using the sidecar method, ensure that you add the correct annotations liste
 If using `helm`, add the following `annotation` to your `values.yaml` file:
 
 ```yaml
-  annotations: { 
-                openservicemesh.io/inbound-port-exclusion-list: "80, 443" 
+  annotations: {
+                openservicemesh.io/inbound-port-exclusion-list: "80, 443"
                }
 ```
 
@@ -125,7 +125,7 @@ spec:
   upstreams:
   - name: httpbin
     service: httpbin
-    port: 14001 
+    port: 14001
     use-cluster-ip: true
   routes:
   - path: /
@@ -426,4 +426,3 @@ curl http://httpbin.example.com/get -v
 }
 * Connection #0 to host httpbin.example.com left intact
 ```
-
