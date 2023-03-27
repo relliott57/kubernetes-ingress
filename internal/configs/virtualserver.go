@@ -233,12 +233,18 @@ type virtualServerConfigurator struct {
 	warnings             Warnings
 	spiffeCerts          bool
 	oidcPolCfg           *oidcPolicyCfg
+	jwtPolicyCfg         *jwtPolicyCfg
 	isIPV6Disabled       bool
 }
 
 type oidcPolicyCfg struct {
 	oidc *version2.OIDC
 	key  string
+}
+
+type jwtPolicyCfg struct {
+	jwt *version2.JWTAuth
+	key string
 }
 
 func (vsc *virtualServerConfigurator) addWarningf(obj runtime.Object, msgFmt string, args ...interface{}) {
@@ -273,6 +279,7 @@ func newVirtualServerConfigurator(
 		warnings:             make(map[runtime.Object][]string),
 		spiffeCerts:          staticParams.NginxServiceMesh,
 		oidcPolCfg:           &oidcPolicyCfg{},
+		jwtPolicyCfg:         &jwtPolicyCfg{},
 		isIPV6Disabled:       staticParams.DisableIPV6,
 	}
 }
@@ -457,6 +464,8 @@ func (vsc *virtualServerConfigurator) GenerateVirtualServerConfig(
 			vsName:         vsEx.VirtualServer.Name,
 		}
 		routePoliciesCfg := vsc.generatePolicies(ownerDetails, r.Policies, vsEx.Policies, routeContext, policyOpts)
+		// We can do the same for JWKS here.
+		// This will ensure that all routes apply the main server reference.
 		if policiesCfg.OIDC {
 			routePoliciesCfg.OIDC = policiesCfg.OIDC
 		}
@@ -664,7 +673,7 @@ func (vsc *virtualServerConfigurator) GenerateVirtualServerConfig(
 			Deny:                      policiesCfg.Deny,
 			LimitReqOptions:           policiesCfg.LimitReqOptions,
 			LimitReqs:                 policiesCfg.LimitReqs,
-			JWTAuth:                   policiesCfg.JWTAuth,
+			JWTAuth:                   vsc.jwtPolicyCfg.jwt,
 			BasicAuth:                 policiesCfg.BasicAuth,
 			IngressMTLS:               policiesCfg.IngressMTLS,
 			EgressMTLS:                policiesCfg.EgressMTLS,
@@ -808,6 +817,7 @@ func (p *policiesCfg) addJWTAuthConfig(
 	polKey string,
 	polNamespace string,
 	secretRefs map[string]*secrets.SecretReference,
+	jwtPolCfg *jwtPolicyCfg,
 ) *validationResults {
 	res := newValidationResults()
 	if p.JWTAuth != nil {
@@ -831,11 +841,20 @@ func (p *policiesCfg) addJWTAuthConfig(
 			return res
 		}
 
-		p.JWTAuth = &version2.JWTAuth{
+		//p.JWTAuth = &version2.JWTAuth{
+		//	Secret: secretRef.Path,
+		//	Realm:  jwtAuth.Realm,
+		//	Token:  jwtAuth.Token,
+		//}
+
+		jwtPolCfg.jwt = &version2.JWTAuth{
 			Secret: secretRef.Path,
 			Realm:  jwtAuth.Realm,
 			Token:  jwtAuth.Token,
 		}
+
+		jwtPolCfg.key = polKey
+
 		return res
 	} else if jwtAuth.JwksURI != "" {
 		uri, _ := url.Parse(jwtAuth.JwksURI)
@@ -847,12 +866,22 @@ func (p *policiesCfg) addJWTAuthConfig(
 			JwksPath:   uri.Path,
 		}
 
-		p.JWTAuth = &version2.JWTAuth{
+		//p.JWTAuth = &version2.JWTAuth{
+		//	JwksURI:  *JwksURI,
+		//	Realm:    jwtAuth.Realm,
+		//	Token:    jwtAuth.Token,
+		//	KeyCache: jwtAuth.KeyCache,
+		//}
+
+		jwtPolCfg.jwt = &version2.JWTAuth{
 			JwksURI:  *JwksURI,
 			Realm:    jwtAuth.Realm,
 			Token:    jwtAuth.Token,
 			KeyCache: jwtAuth.KeyCache,
 		}
+
+		jwtPolCfg.key = polKey
+
 		return res
 	}
 	return res
@@ -1202,7 +1231,7 @@ func (vsc *virtualServerConfigurator) generatePolicies(
 					ownerDetails.vsName,
 				)
 			case pol.Spec.JWTAuth != nil:
-				res = config.addJWTAuthConfig(pol.Spec.JWTAuth, key, polNamespace, policyOpts.secretRefs)
+				res = config.addJWTAuthConfig(pol.Spec.JWTAuth, key, polNamespace, policyOpts.secretRefs, vsc.jwtPolicyCfg)
 			case pol.Spec.BasicAuth != nil:
 				res = config.addBasicAuthConfig(pol.Spec.BasicAuth, key, polNamespace, policyOpts.secretRefs)
 			case pol.Spec.IngressMTLS != nil:
