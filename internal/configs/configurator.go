@@ -44,6 +44,9 @@ const (
 // DefaultServerSecretPath is the full path to the Secret with a TLS cert and a key for the default server. #nosec G101
 const DefaultServerSecretPath = "/etc/nginx/secrets/default"
 
+// DefaultSecretPath is the full default path to where secrets are stored and accessed.
+const DefaultSecretPath = "/etc/nginx/secrets" // #nosec G101
+
 // DefaultServerSecretName is the filename of the Secret with a TLS cert and a key for the default server.
 const DefaultServerSecretName = "default"
 
@@ -56,8 +59,11 @@ const JWTKeyKey = "jwk"
 // HtpasswdFileKey is the key of the data field of a Secret where the HTTP basic authorization list must be stored
 const HtpasswdFileKey = "htpasswd"
 
-// CAKey is the key of the data field of a Secret where the cert must be stored.
-const CAKey = "ca.crt"
+// CACrtKey is the key of the data field of a Secret where the cert must be stored.
+const CACrtKey = "ca.crt"
+
+// CACrlKey is the key of the data field of a Secret where the cert revocation list must be stored.
+const CACrlKey = "ca.crl"
 
 // ClientSecretKey is the key of the data field of a Secret where the OIDC client secret must be stored.
 const ClientSecretKey = "client-secret"
@@ -724,8 +730,12 @@ func generateTLSPassthroughHostsConfig(tlsPassthroughPairs map[string]tlsPassthr
 
 func (cnf *Configurator) addOrUpdateCASecret(secret *api_v1.Secret) string {
 	name := objectMetaToFileName(&secret.ObjectMeta)
-	data := GenerateCAFileContent(secret)
-	return cnf.nginxManager.CreateSecret(name, data, nginx.TLSSecretFileMode)
+	crtData, crlData := GenerateCAFileContent(secret)
+	crtSecretName := fmt.Sprintf("%s-%s", name, CACrtKey)
+	crlSecretName := fmt.Sprintf("%s-%s", name, CACrlKey)
+	crtFileName := cnf.nginxManager.CreateSecret(crtSecretName, crtData, nginx.TLSSecretFileMode)
+	crlFileName := cnf.nginxManager.CreateSecret(crlSecretName, crlData, nginx.TLSSecretFileMode)
+	return fmt.Sprintf("%s %s", crtFileName, crlFileName)
 }
 
 func (cnf *Configurator) addOrUpdateJWKSecret(secret *api_v1.Secret) string {
@@ -815,12 +825,14 @@ func GenerateCertAndKeyFileContent(secret *api_v1.Secret) []byte {
 }
 
 // GenerateCAFileContent generates a pem file content from the TLS secret.
-func GenerateCAFileContent(secret *api_v1.Secret) []byte {
-	var res bytes.Buffer
+func GenerateCAFileContent(secret *api_v1.Secret) ([]byte, []byte) {
+	var caKey bytes.Buffer
+	var caCrl bytes.Buffer
 
-	res.Write(secret.Data[CAKey])
+	caKey.Write(secret.Data[CACrtKey])
+	caCrl.Write(secret.Data[CACrlKey])
 
-	return res.Bytes()
+	return caKey.Bytes(), caCrl.Bytes()
 }
 
 // DeleteIngress deletes NGINX configuration for the Ingress resource.

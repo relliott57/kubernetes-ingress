@@ -58,7 +58,7 @@ match {{ $m.Name }} {
 
 {{ $s := .Server }}
 {{ with $s.JWTAuth }}
-{{ if .KeyCache }}proxy_cache_path /var/cache/nginx/jwk levels=1 keys_zone=jwk:1m max_size=10m; {{ end }}
+{{ if .KeyCache }}proxy_cache_path /var/cache/nginx/jwks_uri levels=1 keys_zone=jwks_uri:1m max_size=10m; {{ end }}
 {{ end }}
 
 {{ range $l := $s.Locations }}
@@ -115,6 +115,9 @@ server {
 
     {{ with $s.IngressMTLS }}
     ssl_client_certificate {{ .ClientCert }};
+    {{ if .ClientCrl }}
+    ssl_crl {{ .ClientCrl }};
+    {{ end }}
     ssl_verify_client {{ .VerifyClient }};
     ssl_verify_depth {{ .VerifyDepth }};
     {{ end }}
@@ -182,8 +185,9 @@ server {
     location = /_jwks_uri_server {
         internal;
         proxy_method GET;
+        proxy_set_header Content-Length "";
         {{ if .KeyCache }}
-        proxy_cache jwk;
+        proxy_cache jwks_uri;
         proxy_cache_valid 200 12h;
         {{ end }}
         {{ with $s.JWTAuth.JwksURI }}
@@ -382,6 +386,7 @@ server {
         location = {{ $l.Path }}_jwks_uri {
             internal;
             proxy_method GET;
+            proxy_set_header Content-Length "";
             {{ if .KeyCache }}
             proxy_cache {{ $l.Path }}_jwks_uri;
             proxy_cache_valid 200 12h;
@@ -425,6 +430,9 @@ server {
         error_page 401 = @do_oidc_flow;
         auth_jwt_key_request /_jwks_uri;
         {{ $proxyOrGRPC }}_set_header username $jwt_claim_sub;
+            {{- if $s.OIDC.AccessTokenEnable }}
+        {{ $proxyOrGRPC }}_set_header Authorization "Bearer $access_token";
+            {{- end }}
         {{ end }}
 
         {{ with $l.WAF }}
