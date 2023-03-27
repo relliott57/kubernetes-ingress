@@ -870,6 +870,8 @@ func (p *policiesCfg) addJWTAuthConfig(
 
 		jwtAuthPolCfg.key = polKey
 
+		p.JWTAuth = true
+
 		return res
 	} else if jwtAuth.JwksURI != "" {
 		uri, _ := url.Parse(jwtAuth.JwksURI)
@@ -896,6 +898,8 @@ func (p *policiesCfg) addJWTAuthConfig(
 		}
 
 		jwtAuthPolCfg.key = polKey
+
+		p.JWTAuth = true
 
 		return res
 	}

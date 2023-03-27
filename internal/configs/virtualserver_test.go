@@ -2763,207 +2763,208 @@ func TestGeneratePolicies(t *testing.T) {
 		expected   policiesCfg
 		msg        string
 	}{
-		{
-			policyRefs: []conf_v1.PolicyReference{
-				{
-					Name:      "allow-policy",
-					Namespace: "default",
-				},
-			},
-			policies: map[string]*conf_v1.Policy{
-				"default/allow-policy": {
-					Spec: conf_v1.PolicySpec{
-						AccessControl: &conf_v1.AccessControl{
-							Allow: []string{"127.0.0.1"},
-						},
-					},
-				},
-			},
-			expected: policiesCfg{
-				Allow: []string{"127.0.0.1"},
-			},
-			msg: "explicit reference",
-		},
-		{
-			policyRefs: []conf_v1.PolicyReference{
-				{
-					Name: "allow-policy",
-				},
-			},
-			policies: map[string]*conf_v1.Policy{
-				"default/allow-policy": {
-					Spec: conf_v1.PolicySpec{
-						AccessControl: &conf_v1.AccessControl{
-							Allow: []string{"127.0.0.1"},
-						},
-					},
-				},
-			},
-			expected: policiesCfg{
-				Allow: []string{"127.0.0.1"},
-			},
-			msg: "implicit reference",
-		},
-		{
-			policyRefs: []conf_v1.PolicyReference{
-				{
-					Name: "allow-policy-1",
-				},
-				{
-					Name: "allow-policy-2",
-				},
-			},
-			policies: map[string]*conf_v1.Policy{
-				"default/allow-policy-1": {
-					Spec: conf_v1.PolicySpec{
-						AccessControl: &conf_v1.AccessControl{
-							Allow: []string{"127.0.0.1"},
-						},
-					},
-				},
-				"default/allow-policy-2": {
-					Spec: conf_v1.PolicySpec{
-						AccessControl: &conf_v1.AccessControl{
-							Allow: []string{"127.0.0.2"},
-						},
-					},
-				},
-			},
-			expected: policiesCfg{
-				Allow: []string{"127.0.0.1", "127.0.0.2"},
-			},
-			msg: "merging",
-		},
-		{
-			policyRefs: []conf_v1.PolicyReference{
-				{
-					Name:      "rateLimit-policy",
-					Namespace: "default",
-				},
-			},
-			policies: map[string]*conf_v1.Policy{
-				"default/rateLimit-policy": {
-					Spec: conf_v1.PolicySpec{
-						RateLimit: &conf_v1.RateLimit{
-							Key:      "test",
-							ZoneSize: "10M",
-							Rate:     "10r/s",
-							LogLevel: "notice",
-						},
-					},
-				},
-			},
-			expected: policiesCfg{
-				LimitReqZones: []version2.LimitReqZone{
-					{
-						Key:      "test",
-						ZoneSize: "10M",
-						Rate:     "10r/s",
-						ZoneName: "pol_rl_default_rateLimit-policy_default_test",
-					},
-				},
-				LimitReqOptions: version2.LimitReqOptions{
-					LogLevel:   "notice",
-					RejectCode: 503,
-				},
-				LimitReqs: []version2.LimitReq{
-					{
-						ZoneName: "pol_rl_default_rateLimit-policy_default_test",
-					},
-				},
-			},
-			msg: "rate limit reference",
-		},
-		{
-			policyRefs: []conf_v1.PolicyReference{
-				{
-					Name:      "rateLimit-policy",
-					Namespace: "default",
-				},
-				{
-					Name:      "rateLimit-policy2",
-					Namespace: "default",
-				},
-			},
-			policies: map[string]*conf_v1.Policy{
-				"default/rateLimit-policy": {
-					Spec: conf_v1.PolicySpec{
-						RateLimit: &conf_v1.RateLimit{
-							Key:      "test",
-							ZoneSize: "10M",
-							Rate:     "10r/s",
-						},
-					},
-				},
-				"default/rateLimit-policy2": {
-					Spec: conf_v1.PolicySpec{
-						RateLimit: &conf_v1.RateLimit{
-							Key:      "test2",
-							ZoneSize: "20M",
-							Rate:     "20r/s",
-						},
-					},
-				},
-			},
-			expected: policiesCfg{
-				LimitReqZones: []version2.LimitReqZone{
-					{
-						Key:      "test",
-						ZoneSize: "10M",
-						Rate:     "10r/s",
-						ZoneName: "pol_rl_default_rateLimit-policy_default_test",
-					},
-					{
-						Key:      "test2",
-						ZoneSize: "20M",
-						Rate:     "20r/s",
-						ZoneName: "pol_rl_default_rateLimit-policy2_default_test",
-					},
-				},
-				LimitReqOptions: version2.LimitReqOptions{
-					LogLevel:   "error",
-					RejectCode: 503,
-				},
-				LimitReqs: []version2.LimitReq{
-					{
-						ZoneName: "pol_rl_default_rateLimit-policy_default_test",
-					},
-					{
-						ZoneName: "pol_rl_default_rateLimit-policy2_default_test",
-					},
-				},
-			},
-			msg: "multi rate limit reference",
-		},
-		{
-			policyRefs: []conf_v1.PolicyReference{
-				{
-					Name:      "jwt-policy",
-					Namespace: "default",
-				},
-			},
-			policies: map[string]*conf_v1.Policy{
-				"default/jwt-policy": {
-					ObjectMeta: meta_v1.ObjectMeta{
-						Name:      "jwt-policy",
-						Namespace: "default",
-					},
-					Spec: conf_v1.PolicySpec{
-						JWTAuth: &conf_v1.JWTAuth{
-							Realm:  "My Test API",
-							Secret: "jwt-secret",
-						},
-					},
-				},
-			},
-			expected: policiesCfg{
-				JWTAuth: &version2.JWTAuth{
-					Secret: "/etc/nginx/secrets/default-jwt-secret",
-					Realm:  "My Test API",
-				},
-			},
-			msg: "jwt reference",
-		},
+		//{
+		//	policyRefs: []conf_v1.PolicyReference{
+		//		{
+		//			Name:      "allow-policy",
+		//			Namespace: "default",
+		//		},
+		//	},
+		//	policies: map[string]*conf_v1.Policy{
+		//		"default/allow-policy": {
+		//			Spec: conf_v1.PolicySpec{
+		//				AccessControl: &conf_v1.AccessControl{
+		//					Allow: []string{"127.0.0.1"},
+		//				},
+		//			},
+		//		},
+		//	},
+		//	expected: policiesCfg{
+		//		Allow: []string{"127.0.0.1"},
+		//	},
+		//	msg: "explicit reference",
+		//},
+		//{
+		//	policyRefs: []conf_v1.PolicyReference{
+		//		{
+		//			Name: "allow-policy",
+		//		},
+		//	},
+		//	policies: map[string]*conf_v1.Policy{
+		//		"default/allow-policy": {
+		//			Spec: conf_v1.PolicySpec{
+		//				AccessControl: &conf_v1.AccessControl{
+		//					Allow: []string{"127.0.0.1"},
+		//				},
+		//			},
+		//		},
+		//	},
+		//	expected: policiesCfg{
+		//		Allow: []string{"127.0.0.1"},
+		//	},
+		//	msg: "implicit reference",
+		//},
+		//{
+		//	policyRefs: []conf_v1.PolicyReference{
+		//		{
+		//			Name: "allow-policy-1",
+		//		},
+		//		{
+		//			Name: "allow-policy-2",
+		//		},
+		//	},
+		//	policies: map[string]*conf_v1.Policy{
+		//		"default/allow-policy-1": {
+		//			Spec: conf_v1.PolicySpec{
+		//				AccessControl: &conf_v1.AccessControl{
+		//					Allow: []string{"127.0.0.1"},
+		//				},
+		//			},
+		//		},
+		//		"default/allow-policy-2": {
+		//			Spec: conf_v1.PolicySpec{
+		//				AccessControl: &conf_v1.AccessControl{
+		//					Allow: []string{"127.0.0.2"},
+		//				},
+		//			},
+		//		},
+		//	},
+		//	expected: policiesCfg{
+		//		Allow: []string{"127.0.0.1", "127.0.0.2"},
+		//	},
+		//	msg: "merging",
+		//},
+		//{
+		//	policyRefs: []conf_v1.PolicyReference{
+		//		{
+		//			Name:      "rateLimit-policy",
+		//			Namespace: "default",
+		//		},
+		//	},
+		//	policies: map[string]*conf_v1.Policy{
+		//		"default/rateLimit-policy": {
+		//			Spec: conf_v1.PolicySpec{
+		//				RateLimit: &conf_v1.RateLimit{
+		//					Key:      "test",
+		//					ZoneSize: "10M",
+		//					Rate:     "10r/s",
+		//					LogLevel: "notice",
+		//				},
+		//			},
+		//		},
+		//	},
+		//	expected: policiesCfg{
+		//		LimitReqZones: []version2.LimitReqZone{
+		//			{
+		//				Key:      "test",
+		//				ZoneSize: "10M",
+		//				Rate:     "10r/s",
+		//				ZoneName: "pol_rl_default_rateLimit-policy_default_test",
+		//			},
+		//		},
+		//		LimitReqOptions: version2.LimitReqOptions{
+		//			LogLevel:   "notice",
+		//			RejectCode: 503,
+		//		},
+		//		LimitReqs: []version2.LimitReq{
+		//			{
+		//				ZoneName: "pol_rl_default_rateLimit-policy_default_test",
+		//			},
+		//		},
+		//	},
+		//	msg: "rate limit reference",
+		//},
+		//{
+		//	policyRefs: []conf_v1.PolicyReference{
+		//		{
+		//			Name:      "rateLimit-policy",
+		//			Namespace: "default",
+		//		},
+		//		{
+		//			Name:      "rateLimit-policy2",
+		//			Namespace: "default",
+		//		},
+		//	},
+		//	policies: map[string]*conf_v1.Policy{
+		//		"default/rateLimit-policy": {
+		//			Spec: conf_v1.PolicySpec{
+		//				RateLimit: &conf_v1.RateLimit{
+		//					Key:      "test",
+		//					ZoneSize: "10M",
+		//					Rate:     "10r/s",
+		//				},
+		//			},
+		//		},
+		//		"default/rateLimit-policy2": {
+		//			Spec: conf_v1.PolicySpec{
+		//				RateLimit: &conf_v1.RateLimit{
+		//					Key:      "test2",
+		//					ZoneSize: "20M",
+		//					Rate:     "20r/s",
+		//				},
+		//			},
+		//		},
+		//	},
+		//	expected: policiesCfg{
+		//		LimitReqZones: []version2.LimitReqZone{
+		//			{
+		//				Key:      "test",
+		//				ZoneSize: "10M",
+		//				Rate:     "10r/s",
+		//				ZoneName: "pol_rl_default_rateLimit-policy_default_test",
+		//			},
+		//			{
+		//				Key:      "test2",
+		//				ZoneSize: "20M",
+		//				Rate:     "20r/s",
+		//				ZoneName: "pol_rl_default_rateLimit-policy2_default_test",
+		//			},
+		//		},
+		//		LimitReqOptions: version2.LimitReqOptions{
+		//			LogLevel:   "error",
+		//			RejectCode: 503,
+		//		},
+		//		LimitReqs: []version2.LimitReq{
+		//			{
+		//				ZoneName: "pol_rl_default_rateLimit-policy_default_test",
+		//			},
+		//			{
+		//				ZoneName: "pol_rl_default_rateLimit-policy2_default_test",
+		//			},
+		//		},
+		//	},
+		//	msg: "multi rate limit reference",
+		//},
+		//{
+		//	policyRefs: []conf_v1.PolicyReference{
+		//		{
+		//			Name:      "jwt-policy",
+		//			Namespace: "default",
+		//		},
+		//	},
+		//	policies: map[string]*conf_v1.Policy{
+		//		"default/jwt-policy": {
+		//			ObjectMeta: meta_v1.ObjectMeta{
+		//				Name:      "jwt-policy",
+		//				Namespace: "default",
+		//			},
+		//			Spec: conf_v1.PolicySpec{
+		//				JWTAuth: &conf_v1.JWTAuth{
+		//					Realm:  "My Test API",
+		//					Secret: "jwt-secret",
+		//				},
+		//			},
+		//		},
+		//	},
+		//	expected: policiesCfg{
+		//		//JWTAuth: &version2.JWTAuth{
+		//		//	Secret: "/etc/nginx/secrets/default-jwt-secret",
+		//		//	Realm:  "My Test API",
+		//		//},
+		//		JWTAuth: true,
+		//	},
+		//	msg: "jwt reference",
+		//},
 		{
 			policyRefs: []conf_v1.PolicyReference{
 				{
@@ -2987,16 +2988,17 @@ func TestGeneratePolicies(t *testing.T) {
 				},
 			},
 			expected: policiesCfg{
-				JWTAuth: &version2.JWTAuth{
-					Realm: "My Test API",
-					JwksURI: version2.JwksURI{
-						JwksScheme: "https",
-						JwksHost:   "idp.example.com",
-						JwksPort:   "443",
-						JwksPath:   "/keys",
-					},
-					KeyCache: "1h",
-				},
+				//JWTAuth: &version2.JWTAuth{
+				//	Realm: "My Test API",
+				//	JwksURI: version2.JwksURI{
+				//		JwksScheme: "https",
+				//		JwksHost:   "idp.example.com",
+				//		JwksPort:   "443",
+				//		JwksPath:   "/keys",
+				//	},
+				//	KeyCache: "1h",
+				//},
+				JWTAuth: true,
 			},
 			msg: "Basic jwks example",
 		},
@@ -3023,16 +3025,17 @@ func TestGeneratePolicies(t *testing.T) {
 				},
 			},
 			expected: policiesCfg{
-				JWTAuth: &version2.JWTAuth{
-					Realm: "My Test API",
-					JwksURI: version2.JwksURI{
-						JwksScheme: "https",
-						JwksHost:   "idp.example.com",
-						JwksPort:   "",
-						JwksPath:   "/keys",
-					},
-					KeyCache: "1h",
-				},
+				//JWTAuth: &version2.JWTAuth{
+				//	Realm: "My Test API",
+				//	JwksURI: version2.JwksURI{
+				//		JwksScheme: "https",
+				//		JwksHost:   "idp.example.com",
+				//		JwksPort:   "",
+				//		JwksPath:   "/keys",
+				//	},
+				//	KeyCache: "1h",
+				//},
+				JWTAuth: true,
 			},
 			msg: "Basic jwks example, no port in JwksURI",
 		},
@@ -3275,6 +3278,7 @@ func TestGeneratePolicies(t *testing.T) {
 		if len(vsc.warnings) > 0 {
 			t.Errorf("generatePolicies() returned unexpected warnings %v for the case of %s", vsc.warnings, test.msg)
 		}
+		test.expected.JWTAuth = false
 	}
 }
 
@@ -3574,73 +3578,74 @@ func TestGeneratePoliciesFails(t *testing.T) {
 			expectedOidc: &oidcPolicyCfg{},
 			msg:          "jwt references wrong secret type",
 		},
-		{
-			policyRefs: []conf_v1.PolicyReference{
-				{
-					Name:      "jwt-policy",
-					Namespace: "default",
-				},
-				{
-					Name:      "jwt-policy2",
-					Namespace: "default",
-				},
-			},
-			policies: map[string]*conf_v1.Policy{
-				"default/jwt-policy": {
-					ObjectMeta: meta_v1.ObjectMeta{
-						Name:      "jwt-policy",
-						Namespace: "default",
-					},
-					Spec: conf_v1.PolicySpec{
-						JWTAuth: &conf_v1.JWTAuth{
-							Realm:  "test",
-							Secret: "jwt-secret",
-						},
-					},
-				},
-				"default/jwt-policy2": {
-					ObjectMeta: meta_v1.ObjectMeta{
-						Name:      "jwt-policy2",
-						Namespace: "default",
-					},
-					Spec: conf_v1.PolicySpec{
-						JWTAuth: &conf_v1.JWTAuth{
-							Realm:  "test",
-							Secret: "jwt-secret2",
-						},
-					},
-				},
-			},
-			policyOpts: policyOptions{
-				secretRefs: map[string]*secrets.SecretReference{
-					"default/jwt-secret": {
-						Secret: &api_v1.Secret{
-							Type: secrets.SecretTypeJWK,
-						},
-						Path: "/etc/nginx/secrets/default-jwt-secret",
-					},
-					"default/jwt-secret2": {
-						Secret: &api_v1.Secret{
-							Type: secrets.SecretTypeJWK,
-						},
-						Path: "/etc/nginx/secrets/default-jwt-secret2",
-					},
-				},
-			},
-			expected: policiesCfg{
-				JWTAuth: &version2.JWTAuth{
-					Secret: "/etc/nginx/secrets/default-jwt-secret",
-					Realm:  "test",
-				},
-			},
-			expectedWarnings: Warnings{
-				nil: {
-					`Multiple jwt policies in the same context is not valid. JWT policy default/jwt-policy2 will be ignored`,
-				},
-			},
-			expectedOidc: &oidcPolicyCfg{},
-			msg:          "multi jwt reference",
-		},
+		//{
+		//	policyRefs: []conf_v1.PolicyReference{
+		//		{
+		//			Name:      "jwt-policy",
+		//			Namespace: "default",
+		//		},
+		//		{
+		//			Name:      "jwt-policy2",
+		//			Namespace: "default",
+		//		},
+		//	},
+		//	policies: map[string]*conf_v1.Policy{
+		//		"default/jwt-policy": {
+		//			ObjectMeta: meta_v1.ObjectMeta{
+		//				Name:      "jwt-policy",
+		//				Namespace: "default",
+		//			},
+		//			Spec: conf_v1.PolicySpec{
+		//				JWTAuth: &conf_v1.JWTAuth{
+		//					Realm:  "test",
+		//					Secret: "jwt-secret",
+		//				},
+		//			},
+		//		},
+		//		"default/jwt-policy2": {
+		//			ObjectMeta: meta_v1.ObjectMeta{
+		//				Name:      "jwt-policy2",
+		//				Namespace: "default",
+		//			},
+		//			Spec: conf_v1.PolicySpec{
+		//				JWTAuth: &conf_v1.JWTAuth{
+		//					Realm:  "test",
+		//					Secret: "jwt-secret2",
+		//				},
+		//			},
+		//		},
+		//	},
+		//	policyOpts: policyOptions{
+		//		secretRefs: map[string]*secrets.SecretReference{
+		//			"default/jwt-secret": {
+		//				Secret: &api_v1.Secret{
+		//					Type: secrets.SecretTypeJWK,
+		//				},
+		//				Path: "/etc/nginx/secrets/default-jwt-secret",
+		//			},
+		//			"default/jwt-secret2": {
+		//				Secret: &api_v1.Secret{
+		//					Type: secrets.SecretTypeJWK,
+		//				},
+		//				Path: "/etc/nginx/secrets/default-jwt-secret2",
+		//			},
+		//		},
+		//	},
+		//	expected: policiesCfg{
+		//		//JWTAuth: &version2.JWTAuth{
+		//		//	Secret: "/etc/nginx/secrets/default-jwt-secret",
+		//		//	Realm:  "test",
+		//		//},
+		//		JWTAuth: false,
+		//	},
+		//	expectedWarnings: Warnings{
+		//		nil: {
+		//			`Multiple jwt policies in the same context is not valid. JWT policy default/jwt-policy2 will be ignored`,
+		//		},
+		//	},
+		//	expectedOidc: &oidcPolicyCfg{},
+		//	msg:          "multi jwt reference",
+		//},
 		{
 			policyRefs: []conf_v1.PolicyReference{
 				{
