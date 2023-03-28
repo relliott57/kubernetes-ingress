@@ -180,7 +180,7 @@ type Location struct {
 	Deny                     []string
 	LimitReqOptions          LimitReqOptions
 	LimitReqs                []LimitReq
-	JWTAuth                  bool
+	JWKSAuth                 bool
 	BasicAuth                *BasicAuth
 	EgressMTLS               *EgressMTLS
 	OIDC                     bool

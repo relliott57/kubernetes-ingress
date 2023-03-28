@@ -469,8 +469,8 @@ func (vsc *virtualServerConfigurator) GenerateVirtualServerConfig(
 		if policiesCfg.OIDC {
 			routePoliciesCfg.OIDC = policiesCfg.OIDC
 		}
-		if policiesCfg.JWTAuth {
-			routePoliciesCfg.JWTAuth = policiesCfg.JWTAuth
+		if policiesCfg.JWKSAuth {
+			routePoliciesCfg.JWKSAuth = policiesCfg.JWKSAuth
 		}
 
 		limitReqZones = append(limitReqZones, routePoliciesCfg.LimitReqZones...)
@@ -583,8 +583,8 @@ func (vsc *virtualServerConfigurator) GenerateVirtualServerConfig(
 			if policiesCfg.OIDC {
 				routePoliciesCfg.OIDC = policiesCfg.OIDC
 			}
-			if policiesCfg.JWTAuth {
-				routePoliciesCfg.JWTAuth = policiesCfg.JWTAuth
+			if policiesCfg.JWKSAuth {
+				routePoliciesCfg.JWKSAuth = policiesCfg.JWKSAuth
 			}
 			limitReqZones = append(limitReqZones, routePoliciesCfg.LimitReqZones...)
 
@@ -704,8 +704,8 @@ type policiesCfg struct {
 	LimitReqOptions version2.LimitReqOptions
 	LimitReqZones   []version2.LimitReqZone
 	LimitReqs       []version2.LimitReq
-	//JWTAuth         *version2.JWTAuth
-	JWTAuth     bool
+	//JWKSAuth         *version2.JWTAuth
+	JWKSAuth    bool
 	BasicAuth   *version2.BasicAuth
 	IngressMTLS *version2.IngressMTLS
 	EgressMTLS  *version2.EgressMTLS
@@ -828,16 +828,18 @@ func (p *policiesCfg) addJWTAuthConfig(
 	jwtAuthPolCfg *jwtAuthPolicyCfg,
 ) *validationResults {
 	res := newValidationResults()
-	if p.JWTAuth {
+	if p.JWKSAuth {
 		res.addWarningf("Multiple jwt policies in the same context is not valid. JWT policy %s will be ignored", polKey)
 		return res
 	}
-
-	if jwtAuthPolCfg.jwt != nil && jwtAuthPolCfg.key != polKey {
-		res.addWarningf("Only one jwt policy is allowed in a VirtualServer and its VirtualServerRoutes. Can't use %s. Use %s",
-			polKey,
-			jwtAuthPolCfg.key)
-	}
+	// Should we be able to have more than one??
+	//if jwtAuthPolCfg.jwt != nil {
+	//	if jwtAuthPolCfg.key != polKey {
+	//		res.addWarningf("Only one jwt policy is allowed in a VirtualServer and its VirtualServerRoutes. Can't use %s. Use %s",
+	//			polKey,
+	//			jwtAuthPolCfg.key)
+	//	}
+	//}
 
 	if jwtAuth.Secret != "" {
 		jwtSecretKey := fmt.Sprintf("%v/%v", polNamespace, jwtAuth.Secret)
@@ -856,7 +858,7 @@ func (p *policiesCfg) addJWTAuthConfig(
 			return res
 		}
 
-		//p.JWTAuth = &version2.JWTAuth{
+		//p.JWKSAuth = &version2.JWKSAuth{
 		//	Secret: secretRef.Path,
 		//	Realm:  jwtAuth.Realm,
 		//	Token:  jwtAuth.Token,
@@ -870,8 +872,6 @@ func (p *policiesCfg) addJWTAuthConfig(
 
 		jwtAuthPolCfg.key = polKey
 
-		p.JWTAuth = true
-
 		return res
 	} else if jwtAuth.JwksURI != "" {
 		uri, _ := url.Parse(jwtAuth.JwksURI)
@@ -883,7 +883,7 @@ func (p *policiesCfg) addJWTAuthConfig(
 			JwksPath:   uri.Path,
 		}
 
-		//p.JWTAuth = &version2.JWTAuth{
+		//p.JWKSAuth = &version2.JWKSAuth{
 		//	JwksURI:  *JwksURI,
 		//	Realm:    jwtAuth.Realm,
 		//	Token:    jwtAuth.Token,
@@ -899,7 +899,7 @@ func (p *policiesCfg) addJWTAuthConfig(
 
 		jwtAuthPolCfg.key = polKey
 
-		p.JWTAuth = true
+		p.JWKSAuth = true
 
 		return res
 	}
@@ -1344,7 +1344,7 @@ func addPoliciesCfgToLocation(cfg policiesCfg, location *version2.Location) {
 	location.Deny = cfg.Deny
 	location.LimitReqOptions = cfg.LimitReqOptions
 	location.LimitReqs = cfg.LimitReqs
-	location.JWTAuth = cfg.JWTAuth
+	location.JWKSAuth = cfg.JWKSAuth
 	location.BasicAuth = cfg.BasicAuth
 	location.EgressMTLS = cfg.EgressMTLS
 	location.OIDC = cfg.OIDC
