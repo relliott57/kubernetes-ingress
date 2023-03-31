@@ -12,6 +12,7 @@ std_vs_src = f"{TEST_DATA}/virtual-server/standard/virtual-server.yaml"
 jwt_pol_valid_src = f"{TEST_DATA}/jwt-policy-jwksuri/policies/jwt-policy-valid.yaml"
 jwt_vs_spec_src = f"{TEST_DATA}/jwt-policy-jwksuri/virtual-server/virtual-server-policy-spec.yaml"
 jwt_vs_route_src = f"{TEST_DATA}/jwt-policy-jwksuri/virtual-server/virtual-server-policy-route.yaml"
+jwt_vs_route_subpath_src = f"{TEST_DATA}/jwt-policy-jwksuri/virtual-server/virtual-server-policy-route-subpath.yaml"
 jwt_cm_src = f"{TEST_DATA}/jwt-policy-jwksuri/configmap/nginx-config.yaml"
 ad_tenant = "dd3dfd2f-6a3b-40d1-9be0-bf8327d81c50"
 client_id = "8a172a83-a630-41a4-9ca6-1e5ef03cd7e7"
@@ -41,7 +42,7 @@ def get_token(request):
 
 @pytest.mark.skip_for_nginx_oss
 @pytest.mark.policies
-@pytest.mark.skip(reason="issues with ingressClass")
+# @pytest.mark.skip(reason="issues with ingressClass")
 @pytest.mark.parametrize(
     "crd_ingress_controller, virtual_server_setup",
     [
@@ -102,7 +103,7 @@ class TestJWTPoliciesVsJwksuri:
                 headers={"host": virtual_server_setup.vs_host},
             )
             wait_before_test()
-            counter = +1
+            counter += 1
 
         token = get_token(request)
 
@@ -111,6 +112,76 @@ class TestJWTPoliciesVsJwksuri:
             headers={"host": virtual_server_setup.vs_host, "token": token},
             timeout=5,
         )
+
+        delete_policy(kube_apis.custom_objects, pol_name, test_namespace)
+        delete_and_create_vs_from_yaml(
+            kube_apis.custom_objects,
+            virtual_server_setup.vs_name,
+            std_vs_src,
+            virtual_server_setup.namespace,
+        )
+
+        assert resp1.status_code == 401 and f"Authorization Required" in resp1.text
+        assert resp2.status_code == 200 and f"Request ID:" in resp2.text
+
+    @pytest.mark.jwks
+    @pytest.mark.parametrize("jwt_virtual_server", [jwt_vs_route_subpath_src])
+    def test_jwt_policy_subroute_jwksuri(
+        self,
+        request,
+        kube_apis,
+        ingress_controller_prerequisites,
+        crd_ingress_controller,
+        virtual_server_setup,
+        test_namespace,
+        jwt_virtual_server,
+    ):
+        """
+        Test jwt-policy in Virtual Server (spec and route) with keys fetched form Azure
+        """
+        replace_configmap_from_yaml(
+            kube_apis.v1,
+            ingress_controller_prerequisites.config_map["metadata"]["name"],
+            ingress_controller_prerequisites.namespace,
+            jwt_cm_src,
+        )
+        pol_name = create_policy_from_yaml(kube_apis.custom_objects, jwt_pol_valid_src, test_namespace)
+        wait_before_test()
+
+        print(f"Patch vs with policy: {jwt_virtual_server}")
+        delete_and_create_vs_from_yaml(
+            kube_apis.custom_objects,
+            virtual_server_setup.vs_name,
+            jwt_virtual_server,
+            virtual_server_setup.namespace,
+        )
+        resp1 = mock.Mock()
+        resp1.status_code == 502
+        counter = 0
+
+#         print("=== NOW WAITING 1===")
+#         wait_before_test(120)
+
+        while resp1.status_code != 401 and counter < 3:
+            resp1 = requests.get(
+                virtual_server_setup.backend_1_url + "/subpath1",
+                headers={"host": virtual_server_setup.vs_host},
+            )
+            wait_before_test()
+            counter += 1
+
+        token = get_token(request)
+
+#         print("=== NOW WAITING 2===")
+#         wait_before_test(120)
+
+        resp2 = requests.get(
+            virtual_server_setup.backend_1_url + "/subpath1",
+            headers={"host": virtual_server_setup.vs_host, "token": token},
+            timeout=5,
+        )
+
+        print()
 
         delete_policy(kube_apis.custom_objects, pol_name, test_namespace)
         delete_and_create_vs_from_yaml(
