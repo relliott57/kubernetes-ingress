@@ -460,7 +460,8 @@ func (vsc *virtualServerConfigurator) GenerateVirtualServerConfig(
 		if policiesCfg.OIDC {
 			routePoliciesCfg.OIDC = policiesCfg.OIDC
 		}
-		if !policiesCfg.JWKSAuthEnabled && routePoliciesCfg.JWKSAuthEnabled {
+
+		if routePoliciesCfg.JWKSAuthEnabled {
 			policiesCfg.JWKSAuthEnabled = routePoliciesCfg.JWKSAuthEnabled
 		}
 		limitReqZones = append(limitReqZones, routePoliciesCfg.LimitReqZones...)
@@ -573,7 +574,8 @@ func (vsc *virtualServerConfigurator) GenerateVirtualServerConfig(
 			if policiesCfg.OIDC {
 				routePoliciesCfg.OIDC = policiesCfg.OIDC
 			}
-			if !policiesCfg.JWKSAuthEnabled && routePoliciesCfg.JWKSAuthEnabled {
+
+			if routePoliciesCfg.JWKSAuthEnabled {
 				policiesCfg.JWKSAuthEnabled = routePoliciesCfg.JWKSAuthEnabled
 			}
 			limitReqZones = append(limitReqZones, routePoliciesCfg.LimitReqZones...)
