@@ -58,7 +58,6 @@ match {{ $m.Name }} {
 
 {{ $s := .Server }}
 {{ if $s.JWKSAuthEnabled }}
-proxy_cache_path /var/cache/nginx/jwks_uri levels=1 keys_zone=jwks_uri:1m max_size=10m;
 
 map $request_uri $idp_backend {
     {{ range $l := $s.Locations }}
