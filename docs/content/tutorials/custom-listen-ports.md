@@ -1,3 +1,12 @@
+---
+title: Customze ports for NGINX Ingress Controller 
+description: |
+  Customze ports for NGINX Ingress Controller 
+weight: 1800
+doctypes: ["concept"]
+toc: true
+docs: "DOCS-1191"
+---
 ## Customizing the `listen` line in NGINX Ingress Controller.
 
 This document will explain how to change the default ports that NGINX Ingress Controller is configured for, as well as add additional `listen` settings. For more information, please read the [NGINX Listen documentation](http://nginx.org/en/docs/http/ngx_http_core_module.html#listen).
@@ -128,10 +137,21 @@ The key part above is the `targetPort` section. Since I change NGINX Ingress to 
 
 
 If you view the `NGINX` configuration .conf file using `nginx -T`, you should see the port you defined in the .template file, now is set on the `listen` line.
+Here is an example output of the `NGINX` configuration that is now generated:
+
+```bash
+k exec -it -n nginx-ingress nginx-ingress-54bffd78d9-v7bns -- nginx -T
+```
 
 ```
 server {
     listen 85;
     listen [::]:85;
     listen 8011;
+
+    server_name cafe.example.com;
+
+    set $resource_type "virtualserver";
+    set $resource_name "cafe";
+    set $resource_namespace "default";
 ```
