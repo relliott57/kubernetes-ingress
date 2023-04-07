@@ -49,9 +49,9 @@ osm namespace add nginx-ingress --mesh-name osm-nginx
 
 The above command will use the mark the `nginx-ingress` namespace, where OSM will be installed (sidecar)
 
-# Install F5 NGINX Ingress controller    
+# Install F5 NGINX Ingress controller
 
-Links to the complete install guides:    
+Links to the complete install guides:
 
 [Using Helm to install NGINX Ingress](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-helm/)
 [Using Manifests to install NGINX Ingress](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-manifests/)
@@ -225,9 +225,9 @@ Once OSM has been installed, this next command will mark the NGINX Ingress Contr
 osm namespace add nginx-ingress --mesh-name osm-nginx --disable-sidecar-injection
 ```
 
-# Install F5 NGINX Ingress controller    
+# Install F5 NGINX Ingress controller
 
-Links to the complete install guides:    
+Links to the complete install guides:
 
 [Using Helm to install NGINX Ingress](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-helm/)
 [Using Manifests to install NGINX Ingress](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-manifests/)
