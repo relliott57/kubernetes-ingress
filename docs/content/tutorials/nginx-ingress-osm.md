@@ -23,7 +23,7 @@ There are two ways to integrate the NGINX Ingress Controller with Open Service M
 2. Using the Open Service Mesh `ingressBackend` "proxy" feature.
 
 
-# NGINX Ingress controller and OSM with sidecar injected
+# NGINX Ingress controller and OSM with sidecar proxy injected
 
 Install OSM in the cluster
 
@@ -31,7 +31,7 @@ Install OSM in the cluster
 osm install --mesh-name osm-nginx --osm-namespace osm-system
 ```
 
-### Mark F5 NGINX Ingress controller namespace for sidecar injection
+### Mark the F5 NGINX Ingress controller namespace for sidecar injection
 
 *NOTE:* Depending on how you install NGINX Ingress controller, you might need to create the `namespace`. For example, if you are using manifests to install NGINX Ingress controller, you can complete all of the steps on our documentation page, *EXCEPT*, actually deploying NGINX Ingress controller. This is because, when using the sidecar approach, OSM needs to "manage" the namespace so it knows what `namespaces` it needs to inject sidecars into.
 
@@ -49,7 +49,9 @@ osm namespace add nginx-ingress --mesh-name osm-nginx
 
 The above command will use the mark the `nginx-ingress` namespace, where OSM will be installed (sidecar)
 
-# Install F5 NGINX Ingress controller. Here the links to the install guides:
+# Install F5 NGINX Ingress controller    
+
+Links to the complete install guides:    
 
 [Using Helm to install NGINX Ingress](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-helm/)
 [Using Manifests to install NGINX Ingress](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-manifests/)
@@ -89,7 +91,7 @@ annotations:
   openservicemesh.io/inbound-port-exclusion-list: "80,443"
 ```
 
-### Sample deployment file with annotation required
+### Sample deployment file with required annotation
 
 ```yaml
 apiVersion: apps/v1
@@ -124,7 +126,7 @@ osm namespace add httpbin --mesh-name osm-nginx
 kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm-docs/release-v1.2/manifests/samples/httpbin/httpbin.yaml -n httpbin
 ```
 
-### Verify that the envoy sidecar has been *injected* into NGINX Ingress
+### Verify that the envoy sidecar has been *injected* into NGINX Ingress Controller
 
 ```bash
 kubectl get pods -n nginx-ingress
@@ -209,7 +211,7 @@ Test your configuration:
 
 ## Using The Open Service Mesh `ingressBackend` "proxy" Feature
 
-Install OSM into cluster.
+Install OSM into the cluster.
 By running the following command, you will install OSM into the cluster with the mesh name `osm-nginx` using the `osm-system` namespace.
 
 ```bash
@@ -217,14 +219,20 @@ osm install --mesh-name osm-nginx --osm-namespace osm-system
 ```
 
 Once OSM has been installed, this next command will mark the NGINX Ingress Controller as part of the OSM mesh, while also disabling sidecar injection.
-*NOTE*: The nginx-ingress name can be created as part of the NGINX Ingress install process, or manually. It must be created before you "add" the namespace to nginx-ingress.
+*NOTE*: The nginx-ingress name can be created as part of the NGINX Ingress install process, or manually. If you are creating it manually, the namespace must created before you "add" the namespace to Open Service Mesh.
 
 ```bash
 osm namespace add nginx-ingress --mesh-name osm-nginx --disable-sidecar-injection
 ```
 
-# You can now install NGINX Ingress Controller by one of th above methods listed: `helm` or `manifetsts`.
-*NOTE*: This method does NOT require annotations added to the deployment.
+# Install F5 NGINX Ingress controller    
+
+Links to the complete install guides:    
+
+[Using Helm to install NGINX Ingress](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-helm/)
+[Using Manifests to install NGINX Ingress](https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-manifests/)
+
+*NOTE*: This method does NOT require annotations added to the deployment, compared to the sidecar install method.
 
 ### Install a Test Application
 
