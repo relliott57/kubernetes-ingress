@@ -1,7 +1,7 @@
 ---
-title: Customze ports for NGINX Ingress Controller 
+title: Customze ports for NGINX Ingress Controller
 description: |
-  Customze ports for NGINX Ingress Controller 
+  Customze ports for NGINX Ingress Controller
 weight: 1800
 doctypes: ["concept"]
 toc: true
@@ -24,8 +24,8 @@ If you are using NGINX Ingress Controller CRDs (virtualServer):
 - `nginx-plus-virtualserver.tmpl` for NGINX Plus
 - `nginx-virtualserver.tmpl` if using NGINX OSS
 
-For this example, we are going to use the `nginx-virtualserver.tmpl` to change the port from 80 to 85. 
-Here is a link to the directory for the `.tmpl` files:    
+For this example, we are going to use the `nginx-virtualserver.tmpl` to change the port from 80 to 85.
+Here is a link to the directory for the `.tmpl` files:
 
 [nginx-virtualserver template files](https://github.com/nginxinc/kubernetes-ingress/tree/main/internal/configs/version2)
 
