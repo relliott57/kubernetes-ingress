@@ -1044,6 +1044,11 @@ func (p *policiesCfg) addEgressMTLSConfig(
 		trustedSecretPath = secretRef.Path
 	}
 
+	if len(trustedSecretPath) != 0 {
+		caFields := strings.Fields(trustedSecretPath)
+		trustedSecretPath = caFields[0]
+	}
+
 	p.EgressMTLS = &version2.EgressMTLS{
 		Certificate:    tlsSecretPath,
 		CertificateKey: tlsSecretPath,

@@ -3172,9 +3172,9 @@ func TestGeneratePolicies(t *testing.T) {
 		vsNamespace:    "default",
 		vsName:         "test",
 	}
-	ingressMTLSCertPath := "/etc/nginx/secrets/default-ingress-mtls-secret-ca.crt"
-	ingressMTLSCrlPath := "/etc/nginx/secrets/default-ingress-mtls-secret-ca.crl"
-	ingressMTLSCertAndCrlPath := fmt.Sprintf("%s %s", ingressMTLSCertPath, ingressMTLSCrlPath)
+	mTLSCertPath := "/etc/nginx/secrets/default-ingress-mtls-secret-ca.crt"
+	mTLSCrlPath := "/etc/nginx/secrets/default-ingress-mtls-secret-ca.crl"
+	mTLSCertAndCrlPath := fmt.Sprintf("%s %s", mTLSCertPath, mTLSCrlPath)
 	policyOpts := policyOptions{
 		tls: true,
 		secretRefs: map[string]*secrets.SecretReference{
@@ -3182,7 +3182,7 @@ func TestGeneratePolicies(t *testing.T) {
 				Secret: &api_v1.Secret{
 					Type: secrets.SecretTypeCA,
 				},
-				Path: ingressMTLSCertPath,
+				Path: mTLSCertPath,
 			},
 			"default/ingress-mtls-secret-crl": {
 				Secret: &api_v1.Secret{
@@ -3191,7 +3191,7 @@ func TestGeneratePolicies(t *testing.T) {
 						"ca.crl": []byte("base64crl"),
 					},
 				},
-				Path: ingressMTLSCertAndCrlPath,
+				Path: mTLSCertAndCrlPath,
 			},
 			"default/egress-mtls-secret": {
 				Secret: &api_v1.Secret{
@@ -3204,6 +3204,12 @@ func TestGeneratePolicies(t *testing.T) {
 					Type: secrets.SecretTypeCA,
 				},
 				Path: "/etc/nginx/secrets/default-egress-trusted-ca-secret",
+			},
+			"default/egress-trusted-ca-secret-crl": {
+				Secret: &api_v1.Secret{
+					Type: secrets.SecretTypeCA,
+				},
+				Path: mTLSCertAndCrlPath,
 			},
 			"default/jwt-secret": {
 				Secret: &api_v1.Secret{
@@ -3239,7 +3245,6 @@ func TestGeneratePolicies(t *testing.T) {
 	tests := []struct {
 		policyRefs []conf_v1.PolicyReference
 		policies   map[string]*conf_v1.Policy
-		policyOpts policyOptions
 		context    string
 		expected   policiesCfg
 		msg        string
@@ -3575,7 +3580,7 @@ func TestGeneratePolicies(t *testing.T) {
 			context: "spec",
 			expected: policiesCfg{
 				IngressMTLS: &version2.IngressMTLS{
-					ClientCert:   ingressMTLSCertPath,
+					ClientCert:   mTLSCertPath,
 					VerifyClient: "off",
 					VerifyDepth:  1,
 				},
@@ -3606,8 +3611,8 @@ func TestGeneratePolicies(t *testing.T) {
 			context: "spec",
 			expected: policiesCfg{
 				IngressMTLS: &version2.IngressMTLS{
-					ClientCert:   ingressMTLSCertPath,
-					ClientCrl:    ingressMTLSCrlPath,
+					ClientCert:   mTLSCertPath,
+					ClientCrl:    mTLSCrlPath,
 					VerifyClient: "off",
 					VerifyDepth:  1,
 				},
@@ -3639,8 +3644,8 @@ func TestGeneratePolicies(t *testing.T) {
 			context: "spec",
 			expected: policiesCfg{
 				IngressMTLS: &version2.IngressMTLS{
-					ClientCert:   ingressMTLSCertPath,
-					ClientCrl:    ingressMTLSCrlPath,
+					ClientCert:   mTLSCertPath,
+					ClientCrl:    mTLSCrlPath,
 					VerifyClient: "off",
 					VerifyDepth:  1,
 				},
@@ -3682,6 +3687,42 @@ func TestGeneratePolicies(t *testing.T) {
 				},
 			},
 			msg: "egressMTLS reference",
+		},
+		{
+			policyRefs: []conf_v1.PolicyReference{
+				{
+					Name:      "egress-mtls-policy",
+					Namespace: "default",
+				},
+			},
+			policies: map[string]*conf_v1.Policy{
+				"default/egress-mtls-policy": {
+					Spec: conf_v1.PolicySpec{
+						EgressMTLS: &conf_v1.EgressMTLS{
+							TLSSecret:         "egress-mtls-secret",
+							ServerName:        true,
+							SessionReuse:      createPointerFromBool(false),
+							TrustedCertSecret: "egress-trusted-ca-secret-crl",
+						},
+					},
+				},
+			},
+			context: "route",
+			expected: policiesCfg{
+				EgressMTLS: &version2.EgressMTLS{
+					Certificate:    "/etc/nginx/secrets/default-egress-mtls-secret",
+					CertificateKey: "/etc/nginx/secrets/default-egress-mtls-secret",
+					Ciphers:        "DEFAULT",
+					Protocols:      "TLSv1 TLSv1.1 TLSv1.2",
+					ServerName:     true,
+					SessionReuse:   false,
+					VerifyDepth:    1,
+					VerifyServer:   false,
+					TrustedCert:    mTLSCertPath,
+					SSLName:        "$proxy_host",
+				},
+			},
+			msg: "egressMTLS with crt and crl",
 		},
 		{
 			policyRefs: []conf_v1.PolicyReference{
