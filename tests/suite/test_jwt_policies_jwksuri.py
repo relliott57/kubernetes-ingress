@@ -11,11 +11,14 @@ from suite.utils.vs_vsr_resources_utils import (
     delete_and_create_vs_from_yaml,
     delete_virtual_server,
     patch_v_s_route_from_yaml,
+    read_vs,
 )
 
 std_vs_src = f"{TEST_DATA}/virtual-server/standard/virtual-server.yaml"
 jwt_pol_valid_src = f"{TEST_DATA}/jwt-policy-jwksuri/policies/jwt-policy-valid.yaml"
 jwt_pol_invalid_src = f"{TEST_DATA}/jwt-policy-jwksuri/policies/jwt-policy-invalid.yaml"
+jwt_pol_invalid_content_cache_src = f"{TEST_DATA}/jwt-policy-jwksuri/policies/jwt-policy-invalid-content-cache-value.yaml"
+jwt_pol_content_cache_disabled_src = f"{TEST_DATA}/jwt-policy-jwksuri/policies/jwt-policy-content-cache-disabled.yaml"
 jwt_vs_spec_src = f"{TEST_DATA}/jwt-policy-jwksuri/virtual-server/virtual-server-policy-spec.yaml"
 jwt_vs_route_src = f"{TEST_DATA}/jwt-policy-jwksuri/virtual-server/virtual-server-policy-route.yaml"
 jwt_spec_and_route_src = f"{TEST_DATA}/jwt-policy-jwksuri/virtual-server/virtual-server-policy-spec-and-route.yaml"
@@ -140,7 +143,41 @@ class TestJWTPoliciesVsJwksuri:
         assert resp_no_token.status_code == 401 and f"Authorization Required" in resp_no_token.text
         assert resp_valid_token.status_code == 200 and f"Request ID:" in resp_valid_token.text
 
-    @pytest.mark.parametrize("jwt_virtual_server", [jwt_vs_invalid_pol_spec_src, jwt_vs_invalid_pol_route_src])
+    @pytest.mark.parametrize(
+        "jwt_virtual_server, jwt_pol_invalid, vs_state",
+        [
+            (
+                jwt_vs_invalid_pol_spec_src,
+                jwt_pol_invalid_src,
+                "Warning",
+            ),
+            (
+                jwt_vs_invalid_pol_route_src,
+                jwt_pol_invalid_src,
+                "Warning",
+            ),
+            (
+                jwt_vs_invalid_pol_spec_src,
+                jwt_pol_invalid_content_cache_src,
+                "Warning",
+            ),
+            (
+                jwt_vs_invalid_pol_route_src,
+                jwt_pol_invalid_content_cache_src,
+                "Warning",
+            ),
+            (
+                jwt_vs_invalid_pol_spec_src,
+                jwt_pol_content_cache_disabled_src,
+                "Warning",
+            ),
+            (
+                jwt_vs_invalid_pol_route_src,
+                jwt_pol_content_cache_disabled_src,
+                "Warning",
+            ),
+        ]
+    )
     def test_jwt_invalid_policy_jwksuri(
         self,
         request,
@@ -150,6 +187,8 @@ class TestJWTPoliciesVsJwksuri:
         virtual_server_setup,
         test_namespace,
         jwt_virtual_server,
+        jwt_pol_invalid,
+        vs_state,
     ):
         """
         Test invalid jwt-policy in Virtual Server (spec and route) with keys fetched form Azure
@@ -160,7 +199,7 @@ class TestJWTPoliciesVsJwksuri:
             ingress_controller_prerequisites.namespace,
             jwt_cm_src,
         )
-        pol_name = create_policy_from_yaml(kube_apis.custom_objects, jwt_pol_invalid_src, test_namespace)
+        pol_name = create_policy_from_yaml(kube_apis.custom_objects, jwt_pol_invalid, test_namespace)
         wait_before_test()
 
         print(f"Patch vs with policy: {jwt_virtual_server}")
@@ -170,6 +209,10 @@ class TestJWTPoliciesVsJwksuri:
             jwt_virtual_server,
             virtual_server_setup.namespace,
         )
+        wait_before_test()
+
+        vs_res = read_vs(kube_apis.custom_objects, test_namespace, virtual_server_setup.vs_name)
+
         wait_before_test()
 
         resp1 = requests.get(
@@ -195,6 +238,7 @@ class TestJWTPoliciesVsJwksuri:
 
         assert resp1.status_code == 500 and f"Internal Server Error" in resp1.text
         assert resp2.status_code == 500 and f"Internal Server Error" in resp2.text
+        assert vs_res["status"]["state"] == vs_state
 
     @pytest.mark.parametrize("jwt_virtual_server", [jwt_vs_route_subpath_src])
     def test_jwt_policy_subroute_jwksuri(

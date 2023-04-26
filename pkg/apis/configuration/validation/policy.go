@@ -183,6 +183,30 @@ func validateJWT(jwt *v1.JWTAuth, fieldPath *field.Path) field.ErrorList {
 		allErrs = append(allErrs, validateTime(jwt.KeyCache, fieldPath.Child("keyCache"))...)
 	}
 
+	if jwt.EnableContentCaching != nil {
+		if jwt.ContentCache != "" && *jwt.EnableContentCaching == true {
+			allErrs = append(allErrs, validateTime(jwt.ContentCache, fieldPath.Child("contentCache"))...)
+		}
+
+		if jwt.ContentCache != "" && !*jwt.EnableContentCaching {
+			allErrs = append(allErrs, field.Invalid(
+				fieldPath.Child("contentCache"),
+				jwt.ContentCache,
+				"content caching must be enabled when using a custom value for contentCache"))
+		}
+
+		if jwt.ContentCache == "" && *jwt.EnableContentCaching == true {
+			allErrs = append(allErrs, field.Invalid(
+				fieldPath.Child("contentCache"),
+				jwt.ContentCache,
+				"contentCache must contain a valid time value when enabling content caching. Content caching is enabled by default."))
+		}
+	}
+
+	if jwt.ContentCache != "" {
+		allErrs = append(allErrs, validateTime(jwt.ContentCache, fieldPath.Child("contentCache"))...)
+	}
+
 	return allErrs
 }
 

@@ -195,9 +195,9 @@ server {
         internal;
         proxy_method GET;
         proxy_set_header Content-Length "";
-        {{ if .KeyCache }}
+        {{ if .EnableContentCaching }}
         proxy_cache jwks_uri_{{ $s.VSName }};
-        proxy_cache_valid 200 12h;
+        proxy_cache_valid 200 {{ .ContentCache }};
         {{ end }}
         {{ with .JwksURI }}
         proxy_set_header Host {{ .JwksHost }};

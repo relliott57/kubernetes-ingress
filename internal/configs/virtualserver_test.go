@@ -3175,6 +3175,8 @@ func TestGeneratePolicies(t *testing.T) {
 	ingressMTLSCertPath := "/etc/nginx/secrets/default-ingress-mtls-secret-ca.crt"
 	ingressMTLSCrlPath := "/etc/nginx/secrets/default-ingress-mtls-secret-ca.crl"
 	ingressMTLSCertAndCrlPath := fmt.Sprintf("%s %s", ingressMTLSCertPath, ingressMTLSCrlPath)
+	contentCachingTrue := true
+	contentCachingFalse := false
 	policyOpts := policyOptions{
 		tls: true,
 		secretRefs: map[string]*secrets.SecretReference{
@@ -3449,14 +3451,14 @@ func TestGeneratePolicies(t *testing.T) {
 		{
 			policyRefs: []conf_v1.PolicyReference{
 				{
-					Name:      "jwt-policy-2",
+					Name:      "jwt-policy",
 					Namespace: "default",
 				},
 			},
 			policies: map[string]*conf_v1.Policy{
-				"default/jwt-policy-2": {
+				"default/jwt-policy": {
 					ObjectMeta: meta_v1.ObjectMeta{
-						Name:      "jwt-policy-2",
+						Name:      "jwt-policy",
 						Namespace: "default",
 					},
 					Spec: conf_v1.PolicySpec{
@@ -3470,7 +3472,7 @@ func TestGeneratePolicies(t *testing.T) {
 			},
 			expected: policiesCfg{
 				JWTAuth: &version2.JWTAuth{
-					Key:   "default/jwt-policy-2",
+					Key:   "default/jwt-policy",
 					Realm: "My Test API",
 					JwksURI: version2.JwksURI{
 						JwksScheme: "https",
@@ -3478,7 +3480,9 @@ func TestGeneratePolicies(t *testing.T) {
 						JwksPort:   "443",
 						JwksPath:   "/keys",
 					},
-					KeyCache: "1h",
+					KeyCache:             "1h",
+					ContentCache:         "12h",
+					EnableContentCaching: true,
 				},
 				JWKSAuthEnabled: true,
 			},
@@ -3487,14 +3491,98 @@ func TestGeneratePolicies(t *testing.T) {
 		{
 			policyRefs: []conf_v1.PolicyReference{
 				{
-					Name:      "jwt-policy-2",
+					Name:      "jwt-policy",
 					Namespace: "default",
 				},
 			},
 			policies: map[string]*conf_v1.Policy{
-				"default/jwt-policy-2": {
+				"default/jwt-policy": {
 					ObjectMeta: meta_v1.ObjectMeta{
-						Name:      "jwt-policy-2",
+						Name:      "jwt-policy",
+						Namespace: "default",
+					},
+					Spec: conf_v1.PolicySpec{
+						JWTAuth: &conf_v1.JWTAuth{
+							Realm:                "My Test API",
+							JwksURI:              "https://idp.example.com:443/keys",
+							KeyCache:             "1h",
+							ContentCache:         "12h",
+							EnableContentCaching: &contentCachingTrue,
+						},
+					},
+				},
+			},
+			expected: policiesCfg{
+				JWTAuth: &version2.JWTAuth{
+					Key:   "default/jwt-policy",
+					Realm: "My Test API",
+					JwksURI: version2.JwksURI{
+						JwksScheme: "https",
+						JwksHost:   "idp.example.com",
+						JwksPort:   "443",
+						JwksPath:   "/keys",
+					},
+					KeyCache:             "1h",
+					ContentCache:         "12h",
+					EnableContentCaching: true,
+				},
+				JWKSAuthEnabled: true,
+			},
+			msg: "Basic jwks example, default values explicitly set for content cache",
+		},
+		{
+			policyRefs: []conf_v1.PolicyReference{
+				{
+					Name:      "jwt-policy",
+					Namespace: "default",
+				},
+			},
+			policies: map[string]*conf_v1.Policy{
+				"default/jwt-policy": {
+					ObjectMeta: meta_v1.ObjectMeta{
+						Name:      "jwt-policy",
+						Namespace: "default",
+					},
+					Spec: conf_v1.PolicySpec{
+						JWTAuth: &conf_v1.JWTAuth{
+							Realm:                "My Test API",
+							JwksURI:              "https://idp.example.com:443/keys",
+							KeyCache:             "1h",
+							ContentCache:         "",
+							EnableContentCaching: &contentCachingFalse,
+						},
+					},
+				},
+			},
+			expected: policiesCfg{
+				JWTAuth: &version2.JWTAuth{
+					Key:   "default/jwt-policy",
+					Realm: "My Test API",
+					JwksURI: version2.JwksURI{
+						JwksScheme: "https",
+						JwksHost:   "idp.example.com",
+						JwksPort:   "443",
+						JwksPath:   "/keys",
+					},
+					KeyCache:             "1h",
+					ContentCache:         "",
+					EnableContentCaching: false,
+				},
+				JWKSAuthEnabled: true,
+			},
+			msg: "Basic jwks example, content caching disabled",
+		},
+		{
+			policyRefs: []conf_v1.PolicyReference{
+				{
+					Name:      "jwt-policy",
+					Namespace: "default",
+				},
+			},
+			policies: map[string]*conf_v1.Policy{
+				"default/jwt-policy": {
+					ObjectMeta: meta_v1.ObjectMeta{
+						Name:      "jwt-policy",
 						Namespace: "default",
 					},
 					Spec: conf_v1.PolicySpec{
@@ -3508,7 +3596,7 @@ func TestGeneratePolicies(t *testing.T) {
 			},
 			expected: policiesCfg{
 				JWTAuth: &version2.JWTAuth{
-					Key:   "default/jwt-policy-2",
+					Key:   "default/jwt-policy",
 					Realm: "My Test API",
 					JwksURI: version2.JwksURI{
 						JwksScheme: "https",
@@ -3516,7 +3604,9 @@ func TestGeneratePolicies(t *testing.T) {
 						JwksPort:   "",
 						JwksPath:   "/keys",
 					},
-					KeyCache: "1h",
+					KeyCache:             "1h",
+					ContentCache:         "12h",
+					EnableContentCaching: true,
 				},
 				JWKSAuthEnabled: true,
 			},

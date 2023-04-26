@@ -424,6 +424,10 @@ func TestValidateRateLimitFails(t *testing.T) {
 
 func TestValidateJWT(t *testing.T) {
 	t.Parallel()
+
+	contentCachingTrue := true
+	contentCachingFalse := false
+
 	tests := []struct {
 		jwt *v1.JWTAuth
 		msg string
@@ -445,12 +449,36 @@ func TestValidateJWT(t *testing.T) {
 		},
 		{
 			jwt: &v1.JWTAuth{
-				Realm:    "My Product API",
-				Token:    "$cookie_auth_token",
-				JwksURI:  "https://idp.com/token",
-				KeyCache: "1h",
+				Realm:                "My Product API",
+				Token:                "$cookie_auth_token",
+				JwksURI:              "https://idp.com/token",
+				KeyCache:             "1h",
+				EnableContentCaching: &contentCachingTrue,
+				ContentCache:         "12h",
 			},
 			msg: "jwt with jwksURI",
+		},
+		{
+			jwt: &v1.JWTAuth{
+				Realm:                "My Product API",
+				Token:                "$cookie_auth_token",
+				JwksURI:              "https://idp.com/token",
+				KeyCache:             "1h",
+				EnableContentCaching: &contentCachingTrue,
+				ContentCache:         "2h",
+			},
+			msg: "jwt with jwksURI and custom ContentCache",
+		},
+		{
+			jwt: &v1.JWTAuth{
+				Realm:                "My Product API",
+				Token:                "$cookie_auth_token",
+				JwksURI:              "https://idp.com/token",
+				KeyCache:             "1h",
+				EnableContentCaching: &contentCachingFalse,
+				ContentCache:         "",
+			},
+			msg: "jwt with jwksURI and content caching disabled",
 		},
 	}
 	for _, test := range tests {
@@ -463,10 +491,57 @@ func TestValidateJWT(t *testing.T) {
 
 func TestValidateJWTFails(t *testing.T) {
 	t.Parallel()
+
+	contentCachingTrue := true
+	contentCachingFalse := false
+
 	tests := []struct {
 		msg string
 		jwt *v1.JWTAuth
 	}{
+		{
+			jwt: &v1.JWTAuth{
+				Realm:                "My Product API",
+				Token:                "$cookie_auth_token",
+				JwksURI:              "https://idp.com/token",
+				KeyCache:             "1h",
+				EnableContentCaching: &contentCachingTrue,
+				ContentCache:         "",
+			},
+			msg: "jwt with jwksURI with content cache enabled and content cache value empty",
+		},
+		{
+			jwt: &v1.JWTAuth{
+				Realm:                "My Product API",
+				Token:                "$cookie_auth_token",
+				JwksURI:              "https://idp.com/token",
+				KeyCache:             "1h",
+				EnableContentCaching: &contentCachingFalse,
+				ContentCache:         "12h",
+			},
+			msg: "jwt with jwksURI with content cache disabled and content cache set to 12h",
+		},
+		{
+			jwt: &v1.JWTAuth{
+				Realm:                "My Product API",
+				Token:                "$cookie_auth_token",
+				JwksURI:              "https://idp.com/token",
+				KeyCache:             "1h",
+				EnableContentCaching: &contentCachingTrue,
+				ContentCache:         "Twelve Hours",
+			},
+			msg: "jwt with jwksURI with an invalid content cache value and content caching enabled",
+		},
+		{
+			jwt: &v1.JWTAuth{
+				Realm:        "My Product API",
+				Token:        "$cookie_auth_token",
+				JwksURI:      "https://idp.com/token",
+				KeyCache:     "1h",
+				ContentCache: "Twelve Hours",
+			},
+			msg: "jwt with jwksURI with an invalid content cache value and content caching not set",
+		},
 		{
 			jwt: &v1.JWTAuth{
 				Realm: "My Product API",

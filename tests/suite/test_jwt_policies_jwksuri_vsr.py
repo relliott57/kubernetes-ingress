@@ -6,11 +6,13 @@ import requests
 from settings import TEST_DATA
 from suite.utils.policy_resources_utils import create_policy_from_yaml, delete_policy
 from suite.utils.resources_utils import replace_configmap_from_yaml, wait_before_test
-from suite.utils.vs_vsr_resources_utils import patch_v_s_route_from_yaml
+from suite.utils.vs_vsr_resources_utils import patch_v_s_route_from_yaml, read_vsr
 
 std_vsr_src = f"{TEST_DATA}/virtual-server-route/route-multiple.yaml"
 jwt_pol_valid_src = f"{TEST_DATA}/jwt-policy-jwksuri/policies/jwt-policy-valid.yaml"
 jwt_pol_invalid_src = f"{TEST_DATA}/jwt-policy-jwksuri/policies/jwt-policy-invalid.yaml"
+jwt_pol_invalid_content_cache_src = f"{TEST_DATA}/jwt-policy-jwksuri/policies/jwt-policy-invalid-content-cache-value.yaml"
+jwt_pol_content_cache_disabled_src = f"{TEST_DATA}/jwt-policy-jwksuri/policies/jwt-policy-content-cache-disabled.yaml"
 jwt_vsr_subroute_src = f"{TEST_DATA}/jwt-policy-jwksuri/virtual-server-route/virtual-server-route-policy-subroute.yaml"
 jwt_vsr_invalid_pol_subroute_src = (
     f"{TEST_DATA}/jwt-policy-jwksuri/virtual-server-route/virtual-server-route-invalid-policy-subroute.yaml"
@@ -43,7 +45,7 @@ def get_token(request):
 
 
 @pytest.mark.skip_for_nginx_oss
-@pytest.mark.jwks
+@pytest.mark.policies
 @pytest.mark.parametrize(
     "crd_ingress_controller, v_s_route_setup",
     [
@@ -135,7 +137,26 @@ class TestJWTPoliciesVSRJwksuri:
         assert resp_valid_token.status_code == 200 and f"Request ID:" in resp_valid_token.text
         assert resp_pol_deleted.status_code == 500 and f"Internal Server Error" in resp_pol_deleted.text
 
-    @pytest.mark.parametrize("jwt_virtual_server_route", [jwt_vsr_invalid_pol_subroute_src])
+    @pytest.mark.parametrize(
+            "jwt_virtual_server_route, jwt_pol_invalid, vsr_state",
+            [
+                (
+                    jwt_vsr_invalid_pol_subroute_src,
+                    jwt_pol_invalid_src,
+                    "Warning",
+                ),
+                (
+                    jwt_vsr_invalid_pol_subroute_src,
+                    jwt_pol_invalid_content_cache_src,
+                    "Warning",
+                ),
+                (
+                    jwt_vsr_invalid_pol_subroute_src,
+                    jwt_pol_content_cache_disabled_src,
+                    "Warning",
+                ),
+            ]
+        )
     def test_jwt_invalid_policy_jwksuri(
         self,
         request,
@@ -146,6 +167,8 @@ class TestJWTPoliciesVSRJwksuri:
         v_s_route_setup,
         test_namespace,
         jwt_virtual_server_route,
+        jwt_pol_invalid,
+        vsr_state
     ):
         """
         Test invalid jwt-policy in Virtual Server Route with keys fetched form Azure
@@ -158,7 +181,7 @@ class TestJWTPoliciesVSRJwksuri:
             jwt_cm_src,
         )
         pol_name = create_policy_from_yaml(
-            kube_apis.custom_objects, jwt_pol_invalid_src, v_s_route_setup.route_m.namespace
+            kube_apis.custom_objects, jwt_pol_invalid, v_s_route_setup.route_m.namespace
         )
         wait_before_test()
 
@@ -169,6 +192,14 @@ class TestJWTPoliciesVSRJwksuri:
             jwt_virtual_server_route,
             v_s_route_setup.route_m.namespace,
         )
+        wait_before_test()
+
+        vsr_res = read_vsr(
+            kube_apis.custom_objects,
+            v_s_route_setup.route_m.namespace,
+            v_s_route_setup.route_m.name,
+        )
+
         wait_before_test()
 
         resp1 = requests.get(
@@ -193,3 +224,4 @@ class TestJWTPoliciesVSRJwksuri:
 
         assert resp1.status_code == 500 and f"Internal Server Error" in resp1.text
         assert resp2.status_code == 500 and f"Internal Server Error" in resp2.text
+        assert vsr_res["status"]["state"] == vsr_state

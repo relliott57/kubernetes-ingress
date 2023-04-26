@@ -238,7 +238,12 @@ jwt:
 |``keyCache`` | Enables the caching of keys that are obtained from the ``jwksURI`` and sets a valid time for expiration | ``string`` | Yes |
 |``realm`` | The realm of the JWT. | ``string`` | Yes |
 |``token`` | The token specifies a variable that contains the JSON Web Token. By default the JWT is passed in the ``Authorization`` header as a Bearer Token. JWT may be also passed as a cookie or a part of a query string, for example: ``$cookie_auth_token``. Accepted variables are ``$http_``, ``$arg_``, ``$cookie_``. | ``string`` | No |
+|``contentCache`` | Sets a valid time for expiration of cached content. Default is `12h` | ``string`` | No |
+|``enableContentCaching`` | Enabled caching of content requested. Default if `true` | ``bool`` | No |
 {{% /table %}}
+
+> Note: We content caching is enabled by default to ensure a JWKS (JSON Web Key Set) can always be obtained from the cache even if the key has expired.
+> This is done to increase resiliency when the JWKS provider is temporarily unavailable.
 
 #### JWT Merging Behavior
 
