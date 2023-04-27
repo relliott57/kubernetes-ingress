@@ -361,18 +361,14 @@ func validateURL(name string, fieldPath *field.Path) field.ErrorList {
 	if err != nil {
 		return field.ErrorList{field.Invalid(fieldPath, name, err.Error())}
 	}
-	var msg string
 	if u.Scheme == "" {
-		msg = "scheme required, please use the prefix http(s)://"
-		return field.ErrorList{field.Invalid(fieldPath, name, msg)}
+		return field.ErrorList{field.Invalid(fieldPath, name, "scheme required, please use the prefix http(s)://")}
 	}
 	if u.Host == "" {
-		msg = "hostname required"
-		return field.ErrorList{field.Invalid(fieldPath, name, msg)}
+		return field.ErrorList{field.Invalid(fieldPath, name, "hostname required")}
 	}
 	if u.Path == "" {
-		msg = "path required"
-		return field.ErrorList{field.Invalid(fieldPath, name, msg)}
+		return field.ErrorList{field.Invalid(fieldPath, name, "path required")}
 	}
 
 	host, port, err := net.SplitHostPort(u.Host)
