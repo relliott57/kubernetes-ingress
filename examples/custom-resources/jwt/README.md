@@ -41,7 +41,6 @@ Create a VirtualServer resource for the web application:
 ```
 $ kubectl apply -f virtual-server.yaml
 ```
-Alternatively, create a VirtualServer resource 
 
 Note that the VirtualServer references the policy `jwt-policy` created in Step 3.
 
